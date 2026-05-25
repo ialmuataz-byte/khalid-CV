@@ -73,6 +73,78 @@
   .toolbar button:hover { background: var(--mint-2); transform: translateY(-1px); }
   .toolbar .hint { color: var(--on-dark-mut); font-size: 11px; align-self: center; padding: 0 6px; }
 
+  .color-controls {
+    display: flex;
+    gap: 10px;
+    padding-right: 10px;
+    border-right: 1px solid rgba(255,255,255,0.15);
+    align-items: center;
+  }
+  .color-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+  }
+  .color-control span {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 8px;
+    color: var(--on-dark-mut);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+  .color-control input[type="color"] {
+    width: 26px;
+    height: 22px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .color-control input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+  .color-control input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+  .color-control input[type="color"]::-moz-color-swatch { border: none; border-radius: 2px; }
+
+  .preset-row {
+    display: flex;
+    gap: 5px;
+    padding-right: 10px;
+    border-right: 1px solid rgba(255,255,255,0.15);
+    align-items: center;
+  }
+  .preset-row .lbl {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 8px;
+    color: var(--on-dark-mut);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-right: 2px;
+  }
+  .preset {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    transition: transform .15s ease;
+  }
+  .preset:hover { transform: scale(1.15); border-color: white; }
+  .preset::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--p1) 0%, var(--p1) 60%, var(--p2) 60%, var(--p2) 100%);
+  }
+
   /* ============ PAGE FRAME ============ */
   .page {
     width: 210mm;
@@ -479,7 +551,7 @@
     content: 'Click to change photo';
     position: absolute;
     inset: 0;
-    background: rgba(44, 58, 75, 0.85);
+    background: color-mix(in srgb, var(--dark) 85%, transparent);
     color: var(--mint);
     font-family: 'Montserrat', sans-serif;
     font-size: 6.5pt;
@@ -544,7 +616,30 @@
 <body>
 
 <div class="toolbar">
-  <span class="hint">Click any text to edit · Click photo to change</span>
+  <div class="preset-row">
+    <span class="lbl">Theme</span>
+    <button class="preset" style="--p1:#2C3A4B;--p2:#A8DADC" data-primary="#2C3A4B" data-accent="#A8DADC" data-bg="#ECEDEF" title="Navy + Mint (original)"></button>
+    <button class="preset" style="--p1:#1B2A3A;--p2:#D4A574" data-primary="#1B2A3A" data-accent="#D4A574" data-bg="#F2EDE4" title="Midnight + Gold"></button>
+    <button class="preset" style="--p1:#2D3E2E;--p2:#B5C99A" data-primary="#2D3E2E" data-accent="#B5C99A" data-bg="#EFEDE5" title="Forest + Sage"></button>
+    <button class="preset" style="--p1:#3E2723;--p2:#E0A899" data-primary="#3E2723" data-accent="#E0A899" data-bg="#F2EBE5" title="Espresso + Blush"></button>
+    <button class="preset" style="--p1:#1A1A1A;--p2:#FFCC4D" data-primary="#1A1A1A" data-accent="#FFCC4D" data-bg="#F0F0F0" title="Mono + Sunshine"></button>
+    <button class="preset" style="--p1:#2B3A55;--p2:#CE7DA5" data-primary="#2B3A55" data-accent="#CE7DA5" data-bg="#F2EAF0" title="Indigo + Rose"></button>
+  </div>
+  <div class="color-controls">
+    <label class="color-control" title="Sidebar & primary color">
+      <span>Primary</span>
+      <input type="color" value="#2C3A4B" id="colorPrimary">
+    </label>
+    <label class="color-control" title="Accent (icon boxes, bars, highlights)">
+      <span>Accent</span>
+      <input type="color" value="#A8DADC" id="colorAccent">
+    </label>
+    <label class="color-control" title="Page background">
+      <span>Background</span>
+      <input type="color" value="#ECEDEF" id="colorBg">
+    </label>
+  </div>
+  <span class="hint">Click text to edit · Click photo to change</span>
   <button onclick="window.print()">Print / Save PDF</button>
 </div>
 <input type="file" id="photoInput" accept="image/*">
@@ -969,6 +1064,66 @@
       e.preventDefault();
     }
   });
+
+  // COLOR THEMING —————————————————————————————————————
+  function shade(hex, percent) {
+    // percent > 0 lightens (mix with white), < 0 darkens (mix with black)
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+    const num = parseInt(hex, 16);
+    let r = (num >> 16) & 0xff;
+    let g = (num >> 8) & 0xff;
+    let b = num & 0xff;
+    if (percent > 0) {
+      const p = percent / 100;
+      r = Math.round(r + (255 - r) * p);
+      g = Math.round(g + (255 - g) * p);
+      b = Math.round(b + (255 - b) * p);
+    } else {
+      const p = Math.abs(percent) / 100;
+      r = Math.round(r * (1 - p));
+      g = Math.round(g * (1 - p));
+      b = Math.round(b * (1 - p));
+    }
+    return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+  }
+
+  const root = document.documentElement;
+  const primaryInput = document.getElementById('colorPrimary');
+  const accentInput = document.getElementById('colorAccent');
+  const bgInput = document.getElementById('colorBg');
+
+  function applyPrimary(v) {
+    root.style.setProperty('--dark',   v);
+    root.style.setProperty('--dark-2', shade(v, 8));
+    root.style.setProperty('--dark-3', shade(v, 16));
+    root.style.setProperty('--text',   v);
+    primaryInput.value = v;
+  }
+  function applyAccent(v) {
+    root.style.setProperty('--mint',   v);
+    root.style.setProperty('--mint-2', shade(v, 12));
+    accentInput.value = v;
+  }
+  function applyBg(v) {
+    root.style.setProperty('--cream',   v);
+    root.style.setProperty('--cream-2', shade(v, 3));
+    bgInput.value = v;
+  }
+
+  primaryInput.addEventListener('input', e => applyPrimary(e.target.value));
+  accentInput.addEventListener('input',  e => applyAccent(e.target.value));
+  bgInput.addEventListener('input',      e => applyBg(e.target.value));
+
+  // Preset themes
+  document.querySelectorAll('.preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyPrimary(btn.dataset.primary);
+      applyAccent(btn.dataset.accent);
+      applyBg(btn.dataset.bg);
+    });
+  });
+
 })();
 </script>
 </body>
